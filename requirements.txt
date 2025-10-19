@@ -1,0 +1,9 @@
+pdfminer.six
+pypandoc
+langchain-community 
+langchain-openai 
+langchain-chroma
+pydantic
+chromadb 
+python-dotenv
+tiktoken
