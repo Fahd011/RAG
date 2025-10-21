@@ -13,7 +13,6 @@ from langchain_openai import OpenAIEmbeddings
 from langchain_core.prompts import ChatPromptTemplate
 
 # --- 1. DEFINE PYDANTIC MODELS FOR PREMISE DETAILS ---
-# These models are based on the detailed breakdown pages (images 2 & 3)
 
 class PremiseLineItem(BaseModel):
     """A single line item charge (e.g., 'Energy Charge Summer' or 'City Fees')."""
@@ -24,6 +23,7 @@ class PremiseLineItem(BaseModel):
 
 class ServiceBreakdown(BaseModel):
     """Details for a single service (Electricity or Gas) at a premise."""
+    InvoiceNumber: str = Field(description="The invoice number for this service.")
     serviceType: str = Field(description="The type of service, e.g., 'ELECTRICITY' or 'NATURAL GAS'.")
     serviceAddress: str = Field(description="The full service address for this premise.")
     meterNumber: Optional[str] = Field(description="The meter number for this service.", default=None)
@@ -91,7 +91,7 @@ def extract_premise_details(premise_num: str, vector_store: Chroma) -> Optional[
     print(f"🔄 Extracting details for premise: {premise_num}...")
     
     # Use a retriever focused on this specific premise number
-    retriever = vector_store.as_retriever(search_type="similarity", search_kwargs={"k": 10})
+    retriever = vector_store.as_retriever(search_type="similarity", search_kwargs={"k": 30})
     query = f"All details for premise {premise_num}, including electricity and natural gas charges, meter readings, and service address."
     relevant_chunks = retriever.invoke(query)
     context_text = "\n\n---\n\n".join([doc.page_content for doc in relevant_chunks])
@@ -105,7 +105,7 @@ def extract_premise_details(premise_num: str, vector_store: Chroma) -> Optional[
     information for PREMISE NUMBER: {premise_num}.
     
     1.  Find the 'ELECTRICITY SERVICE DETAILS' and 'NATURAL GAS SERVICE DETAILS'.
-    2.  For each service, extract the service address, meter number, and read period.
+    2.  For each service, extract the invoice number, service address, meter number, and read period.
     3.  For each service, extract *all* line items from 'ELECTRICITY CHARGES'/'NATURAL GAS CHARGES'
         and all taxes (e.g., 'City Fees', 'State Tax').
     4.  Extract the 'Total' for each service.
@@ -137,6 +137,10 @@ def main():
     db = Chroma(persist_directory=CHROMA_PATH, embedding_function=embedding_function)
     print("Vector database loaded successfully.")
 
+    # Create output directory if it doesn't exist
+    output_dir = "output"
+    os.makedirs(output_dir, exist_ok=True)
+
     # Step 1: Get the list of all premises to process
     premise_numbers = get_all_premises_numbers(db)
     
@@ -145,27 +149,23 @@ def main():
         return
 
     # Step 2: Loop through each premise and extract its details
-    all_premise_details = []
-    # for num in premise_numbers:
-    #     details = extract_premise_details(num, db)
-    #     if details:
-    #         all_premise_details.append(details)
-    details = extract_premise_details(0, db)
-    if details:
-        all_premise_details.append(details)
-
-    # Step 3: Save the combined results to a JSON file
-    if all_premise_details:
-        # Wrap the list in the 'AllPremises' model for clean JSON output
-        final_output = AllPremises(premises=all_premise_details)
-        json_output = final_output.model_dump_json(indent=2)
-        
-        output_filename = "premises_details.json"
-        with open(output_filename, "w", encoding="utf-8") as f:
-            f.write(json_output)
+    successful_extractions = 0
+    for num in premise_numbers:  # Uncomment this loop
+        details = extract_premise_details(num, db)
+        if details:
+            # Save each premise to its own JSON file
+            output_filename = os.path.join(output_dir, f"{details.premisesNumber}.json")
+            json_output = details.model_dump_json(indent=2)
             
-        print(f"\n\n--- ✅ Successfully extracted and saved details for {len(all_premise_details)} premises to {output_filename} ---")
-        # print(json_output) # Optional: print to console
+            with open(output_filename, "w", encoding="utf-8") as f:
+                f.write(json_output)
+            
+            print(f"✅ Saved premise {details.premisesNumber} to {output_filename}")
+            successful_extractions += 1
+
+    # Summary
+    if successful_extractions > 0:
+        print(f"\n\n--- ✅ Successfully extracted and saved {successful_extractions} premises to '{output_dir}/' folder ---")
     else:
         print("\n\n--- ❌ Failed to extract any premise details ---")
 
