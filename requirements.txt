@@ -1,9 +1,24 @@
+# Core LangChain and ecosystem
+langchain
+langchain-core
+langchain-community
+langchain-openai
+langchain-text-splitters
+langchain-chroma
+
+# Vector storage and embeddings
+chromadb
+tiktoken
+
+# Document handling
+unstructured[md]
 pdfminer.six
 pypandoc
-langchain-community 
-langchain-openai 
-langchain-chroma
-pydantic
-chromadb 
+
+# Utilities and configuration
 python-dotenv
-tiktoken
+pydantic
+
+# Optional but recommended
+openai
+numpy

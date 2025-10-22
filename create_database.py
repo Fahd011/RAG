@@ -1,7 +1,7 @@
 # from langchain.document_loaders import DirectoryLoader
-from langchain_community.document_loaders import DirectoryLoader
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.schema import Document
+from langchain_community.document_loaders import DirectoryLoader, PyPDFDirectoryLoader
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_core.documents import Document
 # from langchain.embeddings import OpenAIEmbeddings
 from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import Chroma
@@ -32,7 +32,7 @@ def generate_data_store():
 
 
 def load_documents():
-    loader = DirectoryLoader(DATA_PATH, glob="*.md")
+    loader = PyPDFDirectoryLoader(DATA_PATH)
     documents = loader.load()
     return documents
 

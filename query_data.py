@@ -3,7 +3,7 @@ import argparse
 from langchain_community.vectorstores import Chroma
 from langchain_openai import OpenAIEmbeddings
 from langchain_openai import ChatOpenAI
-from langchain.prompts import ChatPromptTemplate
+from langchain_core.prompts import ChatPromptTemplate
 from dotenv import load_dotenv
 import os
 
@@ -46,7 +46,8 @@ def main():
     print(prompt)
 
     model = ChatOpenAI()
-    response_text = model.predict(prompt)
+    response = model.invoke(prompt)
+    response_text = response.content
 
     sources = [doc.metadata.get("source", None) for doc, _score in results]
     formatted_response = f"Response: {response_text}\nSources: {sources}"
